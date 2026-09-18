@@ -31,4 +31,7 @@ In addition to the basic ER diagram creation function, it has the following dist
 
 The UI is available in Japanese and English — switch with the **JA / EN** toggle.
 
+## License / Terms of Use
+ErCreator is **free to use, including for commercial use**, but it is **not open source** — all rights are reserved by the developer. See **[LICENSE.md](LICENSE.md)** (利用規約 / Terms of Use) for the full terms, including the no-warranty disclaimer and data-handling notes.
+
 ## History
