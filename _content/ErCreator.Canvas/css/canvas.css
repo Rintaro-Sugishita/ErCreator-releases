@@ -1,0 +1,234 @@
+/* ER キャンバス/編集UI のスタイル (Canvas.razor から分離)。
+   注: MarkupString で生成する SVG にも効かせるため、スコープ付き .razor.css ではなくグローバル css。 */
+    .ctx-backdrop { position: fixed; inset: 0; z-index: 1000; }
+    .ctx-menu { position: fixed; z-index: 1001; background: #fff; border: 1px solid #bbb; box-shadow: 0 4px 14px rgba(0,0,0,.18); border-radius: 6px; padding: 4px 0; min-width: 210px; font-size: 13px; }
+    .ctx-menu .item { padding: 5px 14px; cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 10px; }
+    .ctx-menu .item:hover { background: #eef2ff; }
+    .ctx-menu .item .sc { margin-left: auto; color: #999; font-size: 11px; }
+    .ctx-menu .sep { height: 1px; background: #eee; margin: 4px 0; }
+    .ctx-menu .grp { padding: 5px 14px 2px; color: #888; font-size: 11px; }
+    .ctx-menu .row { padding: 2px 12px 6px; display: flex; gap: 4px; flex-wrap: wrap; }
+    .ctx-menu .chip { border: 1px solid #ccc; border-radius: 4px; padding: 2px 9px; cursor: pointer; background: #fafafa; }
+    .ctx-menu .chip:hover { background: #eef2ff; }
+    .ctx-menu .chip.on { border-color: #1a56db; color: #1a56db; font-weight: bold; }
+    .modal-back { position: fixed; inset: 0; z-index: 1100; background: rgba(0,0,0,.35); display: flex; align-items: center; justify-content: center; }
+    .modal-card { background: #fff; border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,.3); padding: 18px 20px; min-width: 360px; max-width: 90vw; max-height: 85vh; overflow: auto; }
+    .modal-card h5 { margin-bottom: 12px; }
+    .modal-card .foot { margin-top: 14px; text-align: right; }
+
+    /* --- コンパクト化（フォント・余白を詰めてキャンバスを広く） --- */
+    .content { padding-top: .4rem !important; }   /* テンプレート既定の上余白を圧縮 */
+    /* 1画面に収める：ルートをビューポート高の縦フレックスにし、内側の一覧/編集パネルを内部スクロール化 */
+    .er-compact { font-size: 12.5px; display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden; }
+    .er-compact h1 { font-size: 1.35rem; margin: .2rem 0 .3rem; }
+    .er-compact h5 { font-size: .9rem; margin-bottom: .4rem; }
+    .er-compact .intro { font-size: 11.5px; color: #888; margin-bottom: .4rem; }
+    .er-compact .btn-sm { padding: .1rem .4rem; font-size: 11.5px; line-height: 1.35; }
+    .er-compact .mb-2 { margin-bottom: .35rem !important; }
+    .er-compact .mt-3 { margin-top: .5rem !important; }
+    .er-compact label { margin-bottom: 0; }
+    .er-compact input, .er-compact select, .er-compact textarea { font-size: 12px; padding: 1px 5px; }
+    .er-compact input[type=color] { padding: 0; width: 28px; height: 22px; }
+    /* 列編集グリッド */
+    .er-grid { font-size: 11.5px; width: 100%; border-collapse: collapse; user-select: none; -webkit-user-select: none; }
+    .er-grid input[type=text] { user-select: text; -webkit-user-select: text; }
+    .er-grid th { background: #f3f5f8; border: 1px solid #dde1e6; padding: 2px 5px; font-weight: 600; white-space: nowrap; position: sticky; top: 0; }
+    .er-grid td { border: 1px solid #e6e8eb; padding: 0; }
+    .er-grid td.c { text-align: center; }
+    .er-grid td.rn { color: #9aa4b2; text-align: right; padding: 0 5px; width: 26px; background: #f8f9fb; }
+    .er-grid td.grip { text-align: center; color: #c2c8d0; cursor: grab; background: #f8f9fb; user-select: none; padding: 0; letter-spacing: -1px; }
+    .er-grid td.grip:hover { color: #5b6472; }
+    .er-pair-sel { background: #eef4ff; border-radius: 4px; }
+    /* エンティティ編集タブ */
+    .er-tabs { display: flex; gap: 2px; border-bottom: 1px solid #dde1e6; margin-bottom: 6px; }
+    .er-tab { border: 1px solid #dde1e6; border-bottom: none; background: #f3f5f8; padding: 2px 12px; font-size: 12px; cursor: pointer; border-radius: 6px 6px 0 0; }
+    .er-tab.on { background: #fff; font-weight: 600; border-bottom: 1px solid #fff; margin-bottom: -1px; }
+    /* インデックスの対象カラム=チップ(desktop風) */
+    .er-idxcols { display: flex; flex-wrap: wrap; gap: 3px; align-items: center; padding: 2px; }
+    .er-chip { background: #40b0a0; color: #fff; border-radius: 10px; padding: 0 3px 0 8px; font-size: 11px; display: inline-flex; align-items: center; gap: 4px; line-height: 18px; }
+    .er-chip .x { background: #2bd0d0; color: #fff; border-radius: 50%; width: 14px; height: 14px; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; font-weight: bold; font-size: 10px; }
+    .er-chip-add { font-size: 11px; border: 1px dashed #c7ccd3; border-radius: 8px; background: #fff; color: #666; }
+    /* タグもインデックス列と同じ緑(desktop準拠) */
+    .er-chip-tag { background: #40b0a0; }
+    .er-chip-tag .x { background: #2bd0d0; }
+    .er-namegen { flex: 0 0 auto; border: 1px solid #c7ccd3; border-radius: 4px; background: #fff; cursor: pointer; font-size: 11px; padding: 0 3px; }
+    .er-namegen:hover { background: #eef2ff; }
+    /* 多重度ラジオ(絵＋ラベル) */
+    .er-card-grid { display: grid; grid-template-columns: repeat(3, max-content); gap: 1px 4px; }   /* desktop同様3+2の2行 */
+    .er-card-opt { display: flex; align-items: center; gap: 4px; font-size: 11px; padding: 1px 5px; border-radius: 4px; cursor: pointer; white-space: nowrap; }
+    .er-card-opt.on { background: #eef4ff; }
+    .er-card-opt input { margin: 0; }
+    /* 表示切替ポップ */
+    .er-disp { display: inline-block; position: relative; }
+    .er-disp-pop { position: absolute; z-index: 1001; top: 100%; left: 0; margin-top: 2px; background: #fff; border: 1px solid #ccc; border-radius: 6px; padding: 8px 10px; box-shadow: 0 2px 10px rgba(0,0,0,.16); min-width: 210px; display: flex; flex-direction: column; gap: 3px; }
+    .er-disp-pop select { width: 100%; }
+    .er-disp-pop label { display: block; font-size: 11.5px; }
+    .er-disp-grp { font-weight: 600; font-size: 11px; color: #444; margin-top: 4px; }
+    .er-disp-grp:first-child { margin-top: 0; }
+    .er-grid input[type=text] { width: 100%; border: none; background: transparent; padding: 2px 5px; }
+    .er-grid input[type=text]:focus { outline: 2px solid #90b4ff; background: #fff; }
+    .er-grid input.pk { width: 100%; text-align: center; }   /* セル全幅＝左に寄らない。数字は中央(隣のNull/ID/色列と揃える) */
+    .er-grid th { position: relative; }
+    .er-grid .rz { position: absolute; top: 0; right: 0; width: 6px; height: 100%; cursor: col-resize; user-select: none; }
+    .er-grid .rz:hover { background: #90b4ff; }
+    .er-grid td.gsel { background: #dbe7ff; }
+    .er-grid tr.droptarget td { background: #fff7e0; }
+    .er-grid tr.droptarget:hover td { background: #ffe9b3; }
+    .er-grid td.gsel input { background: transparent; }
+    /* 型トレース / ルート型(読み取り専用の型継承表示) */
+    .er-grid td.er-tt { color: #8a6d3b; font-size: 10.5px; font-family: monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 5px; }
+    .er-grid-wrap { max-height: 42vh; overflow: auto; border: 1px solid #dde1e6; border-radius: 4px; }
+    /* --- 左サイドバー（エンティティ一覧/ドメイン一覧/検証） --- */
+    .er-main { display: flex; gap: 0; align-items: stretch; flex: 1; min-height: 0; overflow: hidden; }
+    .er-canvas-col { flex: 1; min-width: 0; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+    .er-surface { flex: 0 0 auto; }   /* 高さは EffectiveCanvasH をインライン指定(measure でなく算出＝ちらつき防止) */
+    .er-edit-area { flex: 0 0 auto; min-height: 0; overflow: auto; }   /* 下部ドック(高さはインラインで指定)。内容が多い時はここでスクロール */
+    .er-vsplit { flex: 0 0 6px; cursor: col-resize; background: #eceff3; border: 1px solid #ccc; touch-action: none; user-select: none; }
+    .er-vsplit:hover { background: #d9e2f0; }
+    .er-side { width: 190px; flex: 0 0 190px; display: flex; flex-direction: column; border: 1px solid #dde1e6; border-radius: 4px; overflow: hidden; font-size: 11.5px; }
+    .er-side-h { background: #f3f5f8; border-bottom: 1px solid #dde1e6; padding: 2px 6px; font-weight: 600; display: flex; justify-content: space-between; flex-wrap: wrap; row-gap: 2px; align-items: center; }
+    /* ページタブの横スクロール帯。スクロールバーは細くして操作行を押し下げないようにする。 */
+    .er-pagetabs { scrollbar-width: thin; border-bottom: 1px solid #d5dbe2; }
+    .er-pagetabs::-webkit-scrollbar { height: 6px; }
+    .er-pagetabs::-webkit-scrollbar-thumb { background: #c7ccd3; border-radius: 3px; }
+    .er-pagetabs::-webkit-scrollbar-track { background: transparent; }
+    /* ページ「タブ」。角丸ピルのアクションボタンと差別化し、切替タブと分かるようにする。 */
+    .er-ptab { flex: 0 0 auto; padding: 2px 12px; font-size: 12px; line-height: 1.5; white-space: nowrap;
+        border: 1px solid #d5dbe2; border-bottom: none; border-radius: 6px 6px 0 0; margin-bottom: -1px;
+        background: #eef1f5; color: #566; cursor: pointer; }
+    .er-ptab:hover { background: #e3e8ef; }
+    .er-ptab.on { background: #fff; color: #1a56db; font-weight: 600; border-color: #bcd0ee; border-top: 2px solid #1a56db; padding-top: 1px; }
+    .er-side-f { border: none; border-bottom: 1px solid #e6e8eb; padding: 2px 6px; width: 100%; }
+    .er-side-list { overflow: auto; }
+    .er-side-sec { display: flex; flex-direction: column; min-height: 0; }
+    .er-side-item { padding: 2px 6px; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-bottom: 1px solid #f2f4f7; }
+    .er-side-item:hover { background: #eef2ff; }
+    .er-side-item.on { background: #dbe7ff; }
+    .er-side-item .cmt { color: #188038; }
+    .er-side-grp { padding: 3px 6px 1px; font-size: 10px; font-weight: 600; color: #8a94a2; background: #f7f9fb; border-top: 1px solid #eef0f3; border-bottom: 1px solid #eef0f3; position: sticky; }
+    .er-side-builtin { color: #555; font-family: monospace; font-size: 11px; }
+    /* パーシャル一覧項目の頭に付ける「p」バッジ(実体と区別)。 */
+    .er-part-badge { display: inline-block; min-width: 13px; text-align: center; padding: 0 3px; margin-right: 3px; border-radius: 3px; background: #6b7280; color: #fff; font-size: 10px; font-weight: 700; line-height: 15px; }
+    .er-err { color: #b00020; }
+    .er-err-item { padding: 2px 6px; border-bottom: 1px solid #f7e6e6; }
+    /* 検証(3段階severity) */
+    .er-iss-counts { display: flex; gap: 6px; font-weight: 600; font-size: 11px; white-space: nowrap; }
+    /* サイドバーは1行省略表示(全文はhoverのtitle/詳細モーダルで) */
+    .er-iss-item { display: flex; gap: 4px; align-items: baseline; padding: 2px 6px; border-bottom: 1px solid #eef0f3; line-height: 1.25; white-space: nowrap; }
+    .er-iss-item:hover { background: #eef2ff; }
+    .er-iss-ic { flex: 0 0 auto; }
+    .er-iss-msg { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .er-iss-crit { color: #b00020; }
+    .er-iss-warn { color: #9a6a00; }
+    .er-iss-info { color: #4a6a8a; }
+    .er-iss-detail { font-weight: 400; font-size: 11px; padding: 0 4px; cursor: pointer; border: 1px solid #c7ccd3; border-radius: 4px; background: #fff; }
+    .er-iss-detail:hover { background: #eef2ff; }
+    .er-iss-head-l { display: flex; gap: 4px; align-items: center; white-space: nowrap; }
+    .er-iss-stale { color: #9a6a00; font-weight: 600; font-size: 10px; border: 1px solid #e6cf8a; background: #fff8e6; border-radius: 4px; padding: 0 4px; }
+    .er-iss-dim { opacity: .45; }   /* 要更新のときは件数を淡色にして「古い」と分かるように */
+    /* オブジェクト順序モーダル(単一リスト・⠿ドラッグで並べ替え) */
+    .er-zlist { border: 1px solid #dde1e6; border-radius: 4px; }
+    .er-zrow { display: flex; align-items: center; gap: 8px; padding: 3px 6px; border-bottom: 1px solid #f2f4f7; background: #fff; }
+    .er-zrow:last-child { border-bottom: none; }
+    .er-zrow:hover { background: #f7f9fc; }
+    .er-zdroptarget:hover { background: #fff7e0; box-shadow: inset 0 -2px 0 #1a56db; }
+    .er-zgrip { flex: 0 0 auto; cursor: grab; color: #9aa4b2; letter-spacing: -1px; user-select: none; }
+    .er-zgrip:hover { color: #5b6472; }
+    .er-zkind { flex: 0 0 auto; font-size: 10px; color: #fff; border-radius: 8px; padding: 0 8px; line-height: 16px; }
+    .er-zk-entity { background: #4a7bd0; }
+    .er-zk-partial { background: #7a5bd0; }
+    .er-zk-rel { background: #40b0a0; }
+    .er-zk-text { background: #9a8a5a; }
+    .er-zname { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    /* 検証モーダルの表 */
+    .er-iss-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .er-iss-table th, .er-iss-table td { border-bottom: 1px solid #eef0f3; padding: 3px 8px; text-align: left; vertical-align: top; }
+    .er-iss-table thead th { background: #f3f5f8; position: sticky; top: 0; }
+    .er-iss-table tbody tr:hover { background: #eef2ff; }
+
+    /* ============================================================
+       ダークモード。html[data-theme="dark"] のとき UI(ツールバー/サイドバー/
+       編集グリッド/モーダル/メニュー等)を暗色化する。ER 図の「紙」(SVG のページ矩形)は
+       視認性・印刷を考え明るいまま。トグルは ToggleTheme、永続は localStorage(erTheme)。
+       ============================================================ */
+    [data-theme="dark"] body { background: #1c1f24; color: #d7dbe0; }
+    [data-theme="dark"] .content { color: #d7dbe0; }
+    [data-theme="dark"] .er-compact { color: #d7dbe0; }
+    [data-theme="dark"] .text-muted { color: #9aa4b2 !important; }
+    [data-theme="dark"] a { color: #6ea8fe; }
+
+    /* 入力全般 */
+    [data-theme="dark"] input, [data-theme="dark"] select, [data-theme="dark"] textarea {
+        background: #2b3037; color: #e2e5ea; border-color: #3a4048; }
+    [data-theme="dark"] input::placeholder, [data-theme="dark"] textarea::placeholder { color: #7c8592; }
+
+    /* ブートストラップ系ボタン(暗色で見えるよう調整。アクセント色の outline はそのまま) */
+    [data-theme="dark"] .btn-outline-secondary { color: #c7ccd3; border-color: #4a5058; }
+    [data-theme="dark"] .btn-outline-secondary:hover { background: #333a42; color: #fff; }
+    [data-theme="dark"] .btn-secondary { background: #3a4048; border-color: #4a5058; color: #e2e5ea; }
+    [data-theme="dark"] .btn-secondary:hover { background: #454c55; }
+
+    /* コンテキストメニュー / モーダル */
+    [data-theme="dark"] .ctx-menu { background: #262a30; border-color: #3a4048; color: #d7dbe0; }
+    [data-theme="dark"] .ctx-menu .item:hover { background: #2f3a4d; }
+    [data-theme="dark"] .ctx-menu .sep { background: #3a4048; }
+    [data-theme="dark"] .ctx-menu .chip { background: #2b3037; border-color: #4a5058; color: #d7dbe0; }
+    [data-theme="dark"] .ctx-menu .chip:hover { background: #2f3a4d; }
+    [data-theme="dark"] .modal-card { background: #262a30; color: #d7dbe0; box-shadow: 0 10px 40px rgba(0,0,0,.6); }
+
+    /* キャンバス周辺(紙の外側)とスプリッター */
+    [data-theme="dark"] .er-canvas-col { background: #14161a; }
+    [data-theme="dark"] .er-vsplit { background: #23272e; border-color: #3a4048; }
+    [data-theme="dark"] .er-vsplit:hover { background: #2f3a4d; }
+
+    /* 左サイドバー */
+    [data-theme="dark"] .er-side { border-color: #3a4048; background: #23272e; }
+    [data-theme="dark"] .er-side-h { background: #2d323a; border-color: #3a4048; }
+    [data-theme="dark"] .er-side-f { background: #2b3037; border-color: #3a4048; }
+    [data-theme="dark"] .er-side-item { border-color: #2b3037; }
+    [data-theme="dark"] .er-side-item:hover { background: #2f3a4d; }
+    [data-theme="dark"] .er-side-item.on { background: #33507e; }
+    [data-theme="dark"] .er-side-item .cmt { color: #5cc98a; }
+    [data-theme="dark"] .er-side-grp { background: #2a2f37; color: #9aa4b2; border-color: #3a4048; }
+    [data-theme="dark"] .er-side-builtin { color: #a7b0bd; }
+
+    /* ページタブ */
+    [data-theme="dark"] .er-pagetabs { border-color: #3a4048; }
+    [data-theme="dark"] .er-ptab { background: #2a2f37; color: #a7b0bd; border-color: #3a4048; }
+    [data-theme="dark"] .er-ptab:hover { background: #333a42; }
+    [data-theme="dark"] .er-ptab.on { background: #14161a; color: #6ea8fe; border-color: #33507e; border-top-color: #6ea8fe; }
+
+    /* エンティティ編集タブ(あれば) */
+    [data-theme="dark"] .er-tab { background: #2a2f37; color: #a7b0bd; border-color: #3a4048; }
+    [data-theme="dark"] .er-tab.on { background: #14161a; color: #6ea8fe; }
+
+    /* 表示ドロップダウン等のポップ */
+    [data-theme="dark"] .er-disp-pop { background: #262a30; border-color: #3a4048; color: #d7dbe0; }
+    [data-theme="dark"] .er-disp-grp { color: #9aa4b2; }
+
+    /* 列編集グリッド */
+    [data-theme="dark"] .er-grid-wrap { border-color: #3a4048; }
+    [data-theme="dark"] .er-grid th { background: #2d323a; border-color: #3a4048; color: #d7dbe0; }
+    [data-theme="dark"] .er-grid td { border-color: #333941; }
+    [data-theme="dark"] .er-grid td.rn { background: #23272e; color: #7c8592; }
+    [data-theme="dark"] .er-grid td.grip { background: #23272e; color: #5b6472; }
+    [data-theme="dark"] .er-grid input[type=text] { color: #e2e5ea; }
+    [data-theme="dark"] .er-grid input[type=text]:focus { background: #2b3037; }
+    [data-theme="dark"] .er-grid td.gsel { background: #33507e; }
+    [data-theme="dark"] .er-grid td.er-tt { color: #cbb07a; }
+
+    /* オブジェクト順序 / 検証テーブル */
+    [data-theme="dark"] .er-zlist, [data-theme="dark"] .er-zrow { background: #262a30; border-color: #333941; }
+    [data-theme="dark"] .er-zrow:hover { background: #2f3a4d; }
+    [data-theme="dark"] .er-iss-item:hover { background: #2f3a4d; }
+    [data-theme="dark"] .er-iss-detail { background: #2b3037; border-color: #4a5058; color: #d7dbe0; }
+    [data-theme="dark"] .er-iss-table th, [data-theme="dark"] .er-iss-table td { border-color: #333941; }
+    [data-theme="dark"] .er-iss-table thead th { background: #2d323a; }
+    [data-theme="dark"] .er-iss-table tbody tr:hover { background: #2f3a4d; }
+
+    /* 検証(重大度)の文字色: ダークでは暗い赤/琥珀/青が読みにくいので明色化 */
+    [data-theme="dark"] .er-err, [data-theme="dark"] .er-iss-crit { color: #f28b82; }
+    [data-theme="dark"] .er-iss-warn { color: #f5c451; }
+    [data-theme="dark"] .er-iss-info { color: #8ab4f8; }
+    [data-theme="dark"] .er-err-item { border-color: #4a2a2a; }
+    [data-theme="dark"] .er-iss-stale { color: #f5c451; border-color: #6b5a2a; background: #2a2410; }
