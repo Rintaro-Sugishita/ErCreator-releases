@@ -83,6 +83,8 @@ Legend: 🖥️ Desktop · 🌐 Web · ⌨️ CLI
 
 Full breakdown (Japanese): **[docs/import-export.md](docs/import-export.md)**.
 
+The `.ermlx` file format is documented in **[docs/ermlx-spec.en.md](docs/ermlx-spec.en.md)** (日本語: [docs/ermlx-spec.md](docs/ermlx-spec.md)) — useful when you want a script or an AI to generate models directly.
+
 ## Installation
 - **Web**: nothing to install — open https://rintaro-sugishita.github.io/ErCreator-releases/
 - **Desktop (Windows)**: download the ZIP from the [latest release](https://github.com/Rintaro-Sugishita/ErCreator-releases/releases/latest), unzip, and run `ErCreator.exe`. The build is self-contained (single file), so no separate .NET runtime install is required.
