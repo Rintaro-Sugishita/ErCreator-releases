@@ -10,6 +10,8 @@ An `.ermlx` file is plain **YAML** text: people can read and write it, Git can d
 - 日本語版: [ermlx-spec.md](ermlx-spec.md)
 
 > This specification is written for **producers** of files (people, scripts, AI). ErCreator fills in anything that is not written with default values (see [Omitted values](#omitted-values)).
+>
+> Loading is lenient: unknown keys are ignored and broken references are silently dropped. Check a file you wrote with the CLI: `ercreator validate --in <file.ermlx>` (unknown keys, missing required keys, duplicate IDs, broken references, unknown types, colour format, plus the same model checks as the app; `--format json` for machine-readable output).
 
 ---
 
@@ -142,7 +144,7 @@ Registers type names that the `DbType` does not provide (extension types etc.). 
 | `Tags` | array | none | Tags (`Key` / `Value`) |
 | `Columns` | array | none | Columns ([2.6.1](#261-columns)) |
 | `Indexes` | array | none | Indexes ([2.6.2](#262-indexes)) |
-| `CheckList` | string array | none | CHECK constraints (SQL expressions) |
+| `CheckList` | string array | none | CHECK constraints (SQL expressions, e.g. `price >= 0`). DDL emits them as named constraints `{table}_{expression hash}_check` |
 | `Log` | object | none | Log table setting ([2.6.3](#263-log)) |
 | `CommonTemplateId` | GUID | none | `Id` of the common column template the table uses ([2.10](#210-commoncolumntemplates)). At most one per table |
 
@@ -301,6 +303,48 @@ A reference (shortcut) that shows an entity living on another page on this page.
 | `SourceEntityId` | GUID | ID of the referenced (real) entity |
 | `NickName` | string | Display name (optional) |
 
+The UI calls these "shortcuts". Name, columns, indexes etc. come from the real entity, and DDL, validation and code generation treat a shortcut as its real entity (a shortcut is not a table of its own).
+
+**Relationships and shortcuts**
+
+- Both ends of a relationship are entities or shortcuts on the relationship's own page. **To connect a table on another page, put a shortcut of that table on the relationship's page** and write the shortcut's `Id` in `ParentEntityId` (or `ChildEntityId`). `ParentEntityName` keeps the real table's physical name.
+- Even within one page, a table referenced by many others (users, masters, …) can get several shortcuts, splitting its relationships among them to avoid crowded or crossing lines.
+- Shortcut positions go in `Design.Pages[].PartialEntityLayouts` (matched by `Id`).
+
+```yaml
+Structure:
+  Pages:
+    - PageName: master
+      Entities:
+        - EntityName: customer
+          Id: 0f8c1c52-6b1e-4d63-9a51-3f1f2b9e7a10
+          # ...
+    - PageName: sales
+      Entities:
+        - EntityName: orders
+          Id: 5d2a9e41-2c7b-4f0e-8a3d-6b4c1e9f2a77
+          # ...
+      PartialEntities:
+        - Id: 7c4e2b19-8a3f-4d5e-9b6a-1f2e3d4c5b6a          # shortcut of customer
+          SourceEntityId: 0f8c1c52-6b1e-4d63-9a51-3f1f2b9e7a10
+      Relationships:
+        - Name: orders_customer_id_fkey
+          NeedForeignKey: true
+          ParentEntityId: 7c4e2b19-8a3f-4d5e-9b6a-1f2e3d4c5b6a   # the shortcut's Id
+          ParentEntityName: customer                             # physical name of the real table
+          ChildEntityId: 5d2a9e41-2c7b-4f0e-8a3d-6b4c1e9f2a77
+          ChildEntityName: orders
+          ParentColumnNames: [id]
+          ChildColumnNames: [customer_id]
+Design:
+  Pages:
+    - PageName: sales
+      PartialEntityLayouts:
+        - Id: 7c4e2b19-8a3f-4d5e-9b6a-1f2e3d4c5b6a
+          Left: 40
+          Top: 40
+```
+
 ### 2.10 CommonColumnTemplates
 
 Templates for columns shared by many tables (surrogate key `id`, audit columns `created_at` / `created_by`, …).
@@ -435,7 +479,7 @@ Relationship line shapes. **When omitted, lines are routed automatically**, so y
 |---|---|
 | Structure ↔ Design pages | Same `PageName` |
 | Entity ↔ layout | `Entities[].Id` = `EntityLayouts[].EntityId` |
-| Relationship → entity | By `ParentEntityId` / `ChildEntityId`; if not found, by `ParentEntityName` / `ChildEntityName` |
+| Relationship → entity | By `ParentEntityId` / `ChildEntityId` (may be the `Id` of a shortcut on the same page); if not found, by `ParentEntityName` / `ChildEntityName` |
 | Relationship → columns | Physical names in `ParentColumnNames` / `ChildColumnNames` |
 | Column → type | `TypeName` matched exactly against built-in types (depends on `DbType`), `CustomBuiltInTypes` and `Domains` |
 | Inheritance | `BaseEntityName` = parent `EntityName` |
@@ -446,7 +490,7 @@ Relationship line shapes. **When omitted, lines are routed automatically**, so y
 | Common column relationship → referenced table | By `ParentEntityId`; if not found, by `ParentEntityName` |
 
 - IDs may be any value as long as they are unique within the file. Assign any UUID (v4 etc.) to new objects.
-- To show the same entity on several pages, put the entity on one page and `PartialEntities` references on the others.
+- To show the same entity on several pages, put the entity on one page and `PartialEntities` references on the others. Relationships to a table on another page also go through such a shortcut ([2.9](#29-partialentities)).
 
 ## Omitted values
 
@@ -548,6 +592,7 @@ Output the ER diagram in ErCreator's .ermlx (YAML) format, following docs/ermlx-
 - Put foreign keys in Relationships, matching ParentEntityId/ChildEntityId and column names, with NeedForeignKey: true
 - In Design use ColumnType: All / ItemType: "ColumnName, Type, PkText" / EntityInfoType: NameAndComment,
   and give entities Left/Top about 280px apart horizontally and 220px vertically so they do not overlap
+- For a relationship to a table on another page, put a shortcut (PartialEntities) of that table on the relationship's page and reference its Id
 - Do not output RelationshipLayouts or LastGeneratedData
 ```
 

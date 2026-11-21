@@ -1,0 +1,10 @@
+{
+  "name": "ercreator", "version": "2.4.0",
+  "description": "Create, edit and validate ErCreator ER-diagram models (.ermlx) with Claude.",
+  "author": {
+    "name": "Rintaro Sugishita"
+  },
+  "homepage": "https://github.com/Rintaro-Sugishita/ErCreator-releases",
+  "repository": "https://github.com/Rintaro-Sugishita/ErCreator-releases",
+  "keywords": ["er-diagram", "erd", "database", "schema", "ermlx", "ddl"]
+}

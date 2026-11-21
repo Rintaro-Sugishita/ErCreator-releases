@@ -10,6 +10,8 @@ ErCreator のプロジェクトファイル **`.ermlx`** のデータ構造を�
 - English: [ermlx-spec.en.md](ermlx-spec.en.md)
 
 > 本書はファイルを**書く側**（人・スクリプト・AI）向けの仕様です。ErCreator は書かれていない項目を既定値で補って読み込みます（[省略時の扱い](#省略時の扱い)）。
+>
+> 読み込みは寛容で、未知のキーは無視され、参照切れは黙って失われます。書いたファイルは CLI の `ercreator validate --in <file.ermlx>` で検証できます（未知のキー・必須キーの欠落・ID 重複・参照切れ・未知の型・色の書式と、アプリと同じモデル検証。`--format json` で機械可読な出力）。
 
 ---
 
@@ -142,7 +144,7 @@ Domains:
 | `Tags` | 配列 | なし | タグ（`Key` / `Value`） |
 | `Columns` | 配列 | なし | カラム（[2.6.1](#261-columns)） |
 | `Indexes` | 配列 | なし | インデックス（[2.6.2](#262-indexes)） |
-| `CheckList` | 文字列配列 | なし | CHECK 制約（SQL 式） |
+| `CheckList` | 文字列配列 | なし | CHECK 制約（SQL 式。例: `price >= 0`）。DDL では `{テーブル名}_{式のハッシュ}_check` という名前付き制約になります |
 | `Log` | オブジェクト | なし | ログテーブル設定（[2.6.3](#263-log)） |
 | `CommonTemplateId` | GUID | なし | 使う共通列テンプレートの `Id`（[2.10](#210-commoncolumntemplates)）。1テーブルに1つまで |
 
@@ -301,6 +303,48 @@ LogTemplate:
 | `SourceEntityId` | GUID | 参照先（実体）エンティティの ID |
 | `NickName` | 文字列 | 表示名（任意） |
 
+UI では「ショートカット」と表示されます。名前・カラム・インデックスなどは実体のものが使われ、DDL・検証・コード生成でも実体として扱われます（ショートカット自体はテーブルになりません）。
+
+**リレーションとショートカットの規則**
+
+- リレーションの両端は、そのリレーションと同じページにあるエンティティかショートカットにします。**別ページのテーブルとつなぐときは、そのテーブルのショートカットをリレーションのページに置き**、`ParentEntityId`（または `ChildEntityId`）にショートカットの `Id` を書きます。`ParentEntityName` には実体の物理名を書きます。
+- 同じページの中でも、多くのテーブルから参照されるテーブル（ユーザー・各種マスタなど）は、ショートカットを複数置いてリレーションを分けると、線の集中や交差を避けられます。
+- ショートカットの配置は `Design.Pages[].PartialEntityLayouts`（`Id` で対応）に書きます。
+
+```yaml
+Structure:
+  Pages:
+    - PageName: master
+      Entities:
+        - EntityName: customer
+          Id: 0f8c1c52-6b1e-4d63-9a51-3f1f2b9e7a10
+          # ...
+    - PageName: sales
+      Entities:
+        - EntityName: orders
+          Id: 5d2a9e41-2c7b-4f0e-8a3d-6b4c1e9f2a77
+          # ...
+      PartialEntities:
+        - Id: 7c4e2b19-8a3f-4d5e-9b6a-1f2e3d4c5b6a          # customer のショートカット
+          SourceEntityId: 0f8c1c52-6b1e-4d63-9a51-3f1f2b9e7a10
+      Relationships:
+        - Name: orders_customer_id_fkey
+          NeedForeignKey: true
+          ParentEntityId: 7c4e2b19-8a3f-4d5e-9b6a-1f2e3d4c5b6a   # ショートカットの Id
+          ParentEntityName: customer                             # 実体の物理名
+          ChildEntityId: 5d2a9e41-2c7b-4f0e-8a3d-6b4c1e9f2a77
+          ChildEntityName: orders
+          ParentColumnNames: [id]
+          ChildColumnNames: [customer_id]
+Design:
+  Pages:
+    - PageName: sales
+      PartialEntityLayouts:
+        - Id: 7c4e2b19-8a3f-4d5e-9b6a-1f2e3d4c5b6a
+          Left: 40
+          Top: 40
+```
+
 ### 2.10 CommonColumnTemplates
 
 多くのテーブルに共通する列（サロゲートキー `id`、監査列 `created_at` / `created_by` など）のテンプレートです。
@@ -435,7 +479,7 @@ CommonColumnTemplates:
 |---|---|
 | Structure ↔ Design のページ | `PageName` が同じもの |
 | エンティティ ↔ 配置 | `Entities[].Id` = `EntityLayouts[].EntityId` |
-| リレーション → エンティティ | `ParentEntityId` / `ChildEntityId` で探し、見つからなければ `ParentEntityName` / `ChildEntityName` で探す |
+| リレーション → エンティティ | `ParentEntityId` / `ChildEntityId` で探し（同じページのショートカットの `Id` も可）、見つからなければ `ParentEntityName` / `ChildEntityName` で探す |
 | リレーション → カラム | `ParentColumnNames` / `ChildColumnNames` の物理名 |
 | カラム → 型 | `TypeName` を組み込み型（`DbType` 依存）・`CustomBuiltInTypes`・`Domains` の名前と完全一致で照合 |
 | 継承 | `BaseEntityName` = 継承元の `EntityName` |
@@ -446,7 +490,7 @@ CommonColumnTemplates:
 | 共通列リレーション → 参照先 | `ParentEntityId` で探し、見つからなければ `ParentEntityName` |
 
 - ID はファイル内で一意であれば値は自由です。新しく作るときは任意の UUID（v4 など）を割り当ててください。
-- 同じエンティティを複数ページに置きたいときは、実体を1つのページに置き、他のページには `PartialEntities` で参照を置きます。
+- 同じエンティティを複数ページに置きたいときは、実体を1つのページに置き、他のページには `PartialEntities` で参照を置きます。別ページのテーブルとのリレーションも、このショートカットを経由して書きます（[2.9](#29-partialentities)）。
 
 ## 省略時の扱い
 
@@ -548,6 +592,7 @@ ErCreator の .ermlx（YAML）形式で ER 図を出力してください。仕�
 - 外部キーは Relationships に書き、ParentEntityId/ChildEntityId と列名を合わせ、NeedForeignKey: true にする
 - Design は ColumnType: All / ItemType: "ColumnName, Type, PkText" / EntityInfoType: NameAndComment とし、
   エンティティは横 280px・縦 220px 間隔で重ならないように Left/Top を付ける
+- 別ページのテーブルとのリレーションは、リレーションのページにそのテーブルのショートカット（PartialEntities）を置き、その Id を参照する
 - RelationshipLayouts と LastGeneratedData は出力しない
 ```
 

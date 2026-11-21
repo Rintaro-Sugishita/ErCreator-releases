@@ -1,0 +1,16 @@
+{
+  "name": "ercreator",
+  "owner": {
+    "name": "Rintaro Sugishita"
+  },
+  "metadata": {
+    "description": "Claude Code plugins for ErCreator, a free ER-diagram tool."
+  },
+  "plugins": [
+    {
+      "name": "ercreator",
+      "source": "./claude-plugin",
+      "description": "Create, edit and validate ErCreator ER-diagram models (.ermlx)."
+    }
+  ]
+}

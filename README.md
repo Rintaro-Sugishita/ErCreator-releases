@@ -88,6 +88,8 @@ The `.ermlx` file format is documented in **[docs/ermlx-spec.en.md](docs/ermlx-s
 ## Installation
 - **Web**: nothing to install — open https://rintaro-sugishita.github.io/ErCreator-releases/
 - **Desktop (Windows)**: download the ZIP from the [latest release](https://github.com/Rintaro-Sugishita/ErCreator-releases/releases/latest), unzip, and run `ErCreator.exe`. The build is self-contained (single file), so no separate .NET runtime install is required.
+- **CLI (Windows / macOS / Linux)**: requires the .NET 10 SDK. Install with `dotnet tool install -g ErCreator.Cli`, then run `ercreator --help`. Usage: [nuget.org/packages/ErCreator.Cli](https://www.nuget.org/packages/ErCreator.Cli).
+- **Claude Code skill**: lets Claude design, edit and validate `.ermlx` models for you (uses the CLI when installed). In Claude Code run `/plugin marketplace add Rintaro-Sugishita/ErCreator-releases`, then `/plugin install ercreator@ercreator`, and ask e.g. "Design an ER diagram for a blog as an .ermlx file".
 
 ## Usage
 1. **Open the canvas** — on the web, click **Open ER Canvas** on the landing page.
